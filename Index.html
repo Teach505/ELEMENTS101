@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Element Explorer: The Periodic Quest</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+      min-height: 100vh;
+      color: #f8fafc;
+    }
+    h1, h2, h3, .font-display {
+      font-family: 'Fredoka', sans-serif;
+    }
+    .drop-zone {
+      transition: all 0.2s ease;
+    }
+    .drop-zone.drag-over {
+      background-color: rgba(99, 102, 241, 0.25);
+      border-color: #818cf8;
+      transform: scale(1.02);
+    }
+    .draggable-chip {
+      cursor: grab;
+      user-select: none;
+      transition: all 0.15s ease;
+    }
+    .draggable-chip:active {
+      cursor: grabbing;
+    }
+    .draggable-chip.selected-chip {
+      ring: 4px solid #f59e0b;
+      background-color: #fef3c7 !important;
+      color: #92400e !important;
+      transform: scale(1.04);
+    }
+    .element-tile {
+      background: linear-gradient(145deg, #1e293b, #0f172a);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+  </style>
+</head>
+<body class="p-3 md:p-6">
+
+  <!-- HEADER & NAVIGATION -->
+  <header class="max-w-6xl mx-auto mb-6 bg-slate-800/80 backdrop-blur-md border border-slate-700 rounded-2xl p-4 md:p-6 shadow-xl">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex flex-col items-center justify-center border-2 border-indigo-300 shadow-lg">
+          <span class="text-[10px] font-bold leading-none text-indigo-100">1-20+</span>
+          <span class="text-2xl font-extrabold leading-none text-white font-display">El</span>
+          <span class="text-[9px] leading-none text-indigo-100 mt-0.5">QUEST</span>
+        </div>
+        <div>
+          <h1 class="text-2xl md:text-3xl font-bold bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300 bg-clip-text text-transparent">
+            Element Explorer: The Periodic Quest
+          </h1>
+          <p class="text-xs md:text-sm text-slate-300">
+            Identify & Match the First 20 Elements, Common Metals, Scientists & Properties
+          </p>
+        </div>
+      </div>
+
+      <!-- Score & Student Bar -->
+      <div class="flex flex-wrap items-center gap-3 bg-slate-900/90 px-4 py-2.5 rounded-xl border border-slate-700">
+        <div>
+          <span class="text-xs text-slate-400 block">TOTAL SCORE</span>
+          <span id="global-score" class="text-xl font-bold text-amber-400 font-display">0 pts</span>
+        </div>
+        <div class="h-8 w-[1px] bg-slate-700 mx-1"></div>
+        <div>
+          <span class="text-xs text-slate-400 block">STREAK</span>
+          <span id="global-streak" class="text-xl font-bold text-emerald-400 font-display">🔥 0</span>
+        </div>
+        <button onclick="openSaveModal()" class="ml-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3 py-2 rounded-lg transition shadow">
+          💾 Save Score
+        </button>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="flex flex-wrap gap-2 mt-5 pt-4 border-t border-slate-700/80">
+      <button onclick="switchTab('detective')" id="tab-detective" class="flex-1 min-w-[160px] py-2.5 px-4 rounded-xl font-semibold text-sm transition flex items-center justify-center gap-2 bg-indigo-600 text-white shadow-lg shadow-indigo-600/30">
+        🕵️‍♂️ 1. Element Detective (Clue Quiz)
+      </button>
+      <button onclick="switchTab('dragdrop')" id="tab-dragdrop" class="flex-1 min-w-[160px] py-2.5 px-4 rounded-xl font-semibold text-sm transition flex items-center justify-center gap-2 bg-slate-700/70 hover:bg-slate-700 text-slate-200">
+        🧩 2. Drag & Match Properties
+      </button>
+      <button onclick="switchTab('study')" id="tab-study" class="flex-1 min-w-[160px] py-2.5 px-4 rounded-xl font-semibold text-sm transition flex items-center justify-center gap-2 bg-slate-700/70 hover:bg-slate-700 text-slate-200">
+        📚 3. Periodic Reference Deck
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="max-w-6xl mx-auto">
+
+    <!-- ==========================================
+         MODE 1: ELEMENT DETECTIVE (CLUE QUIZ)
+         ========================================== -->
+    <section id="view-detective" class="space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left Column: Mystery Element Dossier -->
+        <div class="lg:col-span-7 bg-slate-800/90 border border-slate-700 rounded-2xl p-5 md:p-6 shadow-xl flex flex-col justify-between">
+          <div>
+            <div class="flex flex-wrap items-center justify-between gap-2 pb-4 mb-4 border-b border-slate-700">
+              <div class="flex items-center gap-2">
+                <span class="px-3 py-1 bg-indigo-500/20 border border-indigo-400/40 text-indigo-300 rounded-full text-xs font-bold uppercase tracking-wider" id="det-question-num">
+                  Case #1 of 15
+                </span>
+                <span class="px-3 py-1 bg-purple-500/20 border border-purple-400/40 text-purple-300 rounded-full text-xs font-semibold" id="det-category-badge">
+                  Category Clue
+                </span>
+              </div>
+              <div class="flex items-center gap-2">
+                <select id="det-filter" onchange="restartDetectiveGame()" class="bg-slate-900 border border-slate-600 text-xs text-slate-200 rounded-lg px-2.5 py-1.5">
+                  <option value="all">All Clues (Complete Mix)</option>
+                  <option value="atomic">Atomic # & Mass Focus</option>
+                  <option value="scientist">Scientists & History Focus</option>
+                  <option value="properties">Properties & Uses Focus</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Mystery Periodic Tile & Clues -->
+            <div class="flex flex-col sm:flex-row gap-5 items-center sm:items-start mb-6">
+              <!-- Mystery Box -->
+              <div id="mystery-tile" class="w-32 h-36 rounded-2xl element-tile border-2 border-indigo-400/60 flex flex-col items-center justify-between p-3 shrink-0 text-center relative overflow-hidden">
+                <div class="w-full flex justify-between text-xs font-bold text-indigo-300">
+                  <span id="tile-atomic-num">?</span>
+                  <span id="tile-group-hint">🧪</span>
+                </div>
+                <div id="tile-symbol" class="text-4xl font-extrabold font-display text-white tracking-wider my-auto">
+                  ?
+                </div>
+                <div id="tile-name" class="text-xs font-semibold text-slate-300 truncate w-full">
+                  MYSTERY
+                </div>
+                <div id="tile-mass" class="text-[11px] text-amber-300 font-mono">
+                  Mass: ?
+                </div>
+              </div>
+
+              <!-- Clues List -->
+              <div class="flex-1 space-y-2.5 w-full">
+                <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                  <span>🔍 Examine the Clues:</span>
+                </h2>
+                <div id="det-clues-container" class="space-y-2 text-sm">
+                  <!-- Populated dynamically -->
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Extra Hint Bar -->
+          <div class="pt-4 border-t border-slate-700/80 flex flex-wrap items-center justify-between gap-3">
+            <button id="btn-extra-hint" onclick="revealDetectiveHint()" class="text-xs bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/40 px-3 py-2 rounded-lg font-semibold transition">
+              💡 Reveal Extra Hint (-2 pts)
+            </button>
+            <p id="extra-hint-text" class="text-xs text-amber-200 italic hidden"></p>
+          </div>
+        </div>
+
+        <!-- Right Column: Answer Input & Feedback -->
+        <div class="lg:col-span-5 bg-slate-800/90 border border-slate-700 rounded-2xl p-5 md:p-6 shadow-xl flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-base font-bold text-slate-200">Select the Matching Element:</h3>
+              <label class="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer">
+                <input type="checkbox" id="toggle-hard-mode" onchange="renderAnswerArea()" class="rounded bg-slate-900 border-slate-600 text-indigo-500">
+                <span>Type Answer Mode</span>
+              </label>
+            </div>
+
+            <!-- Multiple Choice Grid -->
+            <div id="mc-options-grid" class="grid grid-cols-1 gap-2.5">
+              <!-- Populated dynamically -->
+            </div>
+
+            <!-- Type-in Mode Container -->
+            <div id="type-answer-box" class="hidden space-y-3">
+              <p class="text-xs text-slate-400">Type either the <strong>Element Name</strong> (e.g., <em>Hydrogen</em>) or its <strong>Chemical Symbol</strong> (e.g., <em>H</em>):</p>
+              <input type="text" id="type-input" placeholder="Enter element name or symbol..." onkeydown="if(event.key==='Enter') submitTypedAnswer()" class="w-full bg-slate-900 border border-slate-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-400">
+              <button onclick="submitTypedAnswer()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl transition">
+                Submit Answer
+              </button>
+            </div>
+
+            <!-- Feedback Banner -->
+            <div id="det-feedback" class="hidden mt-4 p-4 rounded-xl border text-sm"></div>
+          </div>
+
+          <div class="mt-5 pt-4 border-t border-slate-700 flex justify-between items-center">
+            <button onclick="restartDetectiveGame()" class="text-xs text-slate-400 hover:text-white underline">
+              🔄 New 15-Question Set
+            </button>
+            <button id="btn-next-question" onclick="nextDetectiveQuestion()" class="hidden bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-5 py-2.5 rounded-xl shadow-lg transition">
+              Next Element ➡️
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==========================================
+         MODE 2: DRAG & DROP PROPERTY MATCHER
+         ========================================== -->
+    <section id="view-dragdrop" class="hidden space-y-6">
+      <!-- Top Control Bar -->
+      <div class="bg-slate-800/90 border border-slate-700 rounded-2xl p-4 md:p-5 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-xl font-bold text-white flex items-center gap-2">
+            🧩 Drag & Match: Properties, Discoverers & Uses
+          </h2>
+          <p class="text-xs md:text-sm text-slate-300 mt-0.5">
+            <strong>How to play:</strong> Drag any clue card from the bank below and drop it into the matching Element Box! 
+            <span class="text-amber-300">(On mobile/touchscreen: tap a clue card to highlight it, then tap the target Element Box.)</span>
+          </p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 shrink-0">
+          <select id="dd-level-select" onchange="initDragDropRound()" class="bg-slate-900 border border-slate-600 text-xs text-slate-200 rounded-xl px-3 py-2">
+            <option value="random">Random 4 Elements</option>
+            <option value="1-5">Elements 1–5 (H to B)</option>
+            <option value="6-10">Elements 6–10 (C to Ne)</option>
+            <option value="11-15">Elements 11–15 (Na to P)</option>
+            <option value="16-20">Elements 16–20 (S to Ca)</option>
+            <option value="beyond">Beyond 20 (Sc, Fe, Cu, Au)</option>
+          </select>
+          <button onclick="initDragDropRound()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow">
+            🔀 New Round
+          </button>
+          <button onclick="checkDragDropAnswers()" id="btn-check-dd" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow">
+            ✅ Check Matches
+          </button>
+        </div>
+      </div>
+
+      <!-- Draggable Clue Bank -->
+      <div class="bg-slate-900/90 border-2 border-dashed border-slate-700 rounded-2xl p-4"
+           ondragover="allowDrop(event)" ondrop="dropToBank(event)" onclick="handleBankClick()">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-xs font-bold uppercase tracking-wider text-indigo-300">
+            📦 Clue & Property Bank (8 Items — 2 per Element)
+          </span>
+          <span id="dd-status-msg" class="text-xs text-amber-300 font-semibold"></span>
+        </div>
+        <div id="dd-bank" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2.5 min-h-[72px]">
+          <!-- Draggable items inserted here -->
+        </div>
+      </div>
+
+      <!-- 4 Target Element Drop Zones -->
+      <div id="dd-targets" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Target Element Buckets inserted here -->
+      </div>
+    </section>
+
+    <!-- ==========================================
+         MODE 3: PERIODIC REFERENCE DECK
+         ========================================== -->
+    <section id="view-study" class="hidden space-y-6">
+      <div class="bg-slate-800/90 border border-slate-700 rounded-2xl p-4 md:p-5 shadow-xl space-y-4">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-xl font-bold text-white">📚 Source Reference Deck (Lesson 6 & NotebookLM Notes)</h2>
+            <p class="text-xs text-slate-300">Review naming patterns (-gen, -ine, -on, -ium), Latin symbols, discoverers, and textbook properties.</p>
+          </div>
+          <input type="text" id="study-search" oninput="renderStudyDeck()" placeholder="Search element, symbol, scientist, or use..." class="bg-slate-900 border border-slate-600 rounded-xl px-4 py-2 text-sm text-white w-full md:w-72 focus:outline-none focus:border-indigo-400">
+        </div>
+
+        <!-- Naming Clues Quick Banner from Textbook p. 123 -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
+          <div class="bg-sky-950/60 border border-sky-700/60 p-3 rounded-xl text-xs">
+            <span class="font-bold text-sky-300 block mb-1">Suffix "-gen" (H, N, O)</span>
+            Nonmetals that exist as gases at room temperature.
+          </div>
+          <div class="bg-emerald-950/60 border border-emerald-700/60 p-3 rounded-xl text-xs">
+            <span class="font-bold text-emerald-300 block mb-1">Suffix "-ine" (F, Cl)</span>
+            Belong to the halogens; highly reactive nonmetals.
+          </div>
+          <div class="bg-purple-950/60 border border-purple-700/60 p-3 rounded-xl text-xs">
+            <span class="font-bold text-purple-300 block mb-1">Suffix "-on" (Ne, Ar)</span>
+            Noble gases, known for being inert or nonreactive.
+          </div>
+          <div class="bg-amber-950/60 border border-amber-700/60 p-3 rounded-xl text-xs">
+            <span class="font-bold text-amber-300 block mb-1">Suffix "-ium" (Na, Mg, Ca...)</span>
+            Metals: typically hard, shiny, and good conductors of heat & electricity.
+          </div>
+        </div>
+      </div>
+
+      <!-- Cards Grid -->
+      <div id="study-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Populated dynamically -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL: SAVE SCORE TO GOOGLE SHEET -->
+  <div id="save-modal" class="fixed inset-0 bg-black/75 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-slate-800 border border-slate-600 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center">
+        <h3 class="text-lg font-bold text-white">💾 Submit Score to Teacher</h3>
+        <button onclick="closeSaveModal()" class="text-slate-400 hover:text-white text-xl">&times;</button>
+      </div>
+      <p class="text-xs text-slate-300">Enter your name and section to record your current score (<span id="modal-score-display" class="font-bold text-amber-400">0 pts</span>).</p>
+      <div class="space-y-3">
+        <div>
+          <label class="text-xs text-slate-400 block mb-1">Learner's Full Name</label>
+          <input type="text" id="student-name" placeholder="Juan Dela Cruz" class="w-full bg-slate-900 border border-slate-600 rounded-xl px-3.5 py-2 text-sm text-white">
+        </div>
+        <div>
+          <label class="text-xs text-slate-400 block mb-1">Grade & Section</label>
+          <input type="text" id="student-section" placeholder="Grade 10 - Newton" class="w-full bg-slate-900 border border-slate-600 rounded-xl px-3.5 py-2 text-sm text-white">
+        </div>
+      </div>
+      <div id="save-status" class="text-xs hidden p-2.5 rounded-lg"></div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="closeSaveModal()" class="px-4 py-2 rounded-xl bg-slate-700 text-xs font-semibold text-slate-300">Cancel</button>
+        <button id="btn-submit-sheet" onclick="sendScoreToSheet()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white">Submit Score</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       JAVASCRIPT: DATA & GAME ENGINE
+       ========================================== -->
+  <script>
+    /**
+     * Complete dataset synthesized from:
+     * 1. Textbook Lesson 6: The First 20 Elements + Fe, Cu, Au (pp. 121-123)
+     * 2. NotebookLM Tab 1: Elements 1 to 21 (H to Sc)
+     */
+    const ELEMENTS_DATA = [
+      {
+        num: 1, symbol: "H", name: "Hydrogen", mass: "1.008",
+        category: "Nonmetal (-gen gas)",
+        discoverer: "Known since ancient times; formally identified by Henry Cavendish (1766)",
+        textbookSummary: "Lightest element, highly flammable, essential for water (H₂O).",
+        physicalProps: "Colorless gas, very light, boiling point −252.9 °C",
+        chemicalProps: "Highly reactive, forms H₂ molecules, burns in oxygen",
+        occurrence: "Found in water, stars, and organic compounds",
+        uses: "Essential for water (H₂O), fuel cells, ammonia production",
+        bioImportance: "Essential in all organic molecules",
+        funFact: "Most abundant element in the universe"
+      },
+      {
+        num: 2, symbol: "He", name: "Helium", mass: "4.003 (4.0026)",
+        category: "Inert Noble Gas",
+        discoverer: "Pierre Janssen and Norman Lockyer in 1868 (in solar spectrum)",
+        textbookSummary: "Inert gas, low density, used in balloons and cooling systems.",
+        physicalProps: "Colorless gas, very low density, boiling point −268.9 °C",
+        chemicalProps: "Inert noble gas; does not react with other elements",
+        occurrence: "Found in natural gas deposits and stars",
+        uses: "Balloons, cryogenics, cooling superconductors",
+        bioImportance: "None",
+        funFact: "Second most abundant element in the universe"
+      },
+      {
+        num: 3, symbol: "Li", name: "Lithium", mass: "7.000 (6.94)",
+        category: "Reactive Metal (-ium)",
+        discoverer: "Johan Arfwedson in 1817",
+        textbookSummary: "Soft metal, reactive, used in batteries.",
+        physicalProps: "Soft, silvery metal, low density",
+        chemicalProps: "Reacts with water, forms Li⁺ ions",
+        occurrence: "Found in minerals like spodumene",
+        uses: "Rechargeable batteries, mood stabilizers",
+        bioImportance: "Trace element in humans",
+        funFact: "Lightest solid element"
+      },
+      {
+        num: 4, symbol: "Be", name: "Beryllium", mass: "9.012 (9.0122)",
+        category: "Metal (-ium)",
+        discoverer: "Nicolas Vauquelin in 1798",
+        textbookSummary: "Hard, brittle, high melting point, used in aerospace materials.",
+        physicalProps: "Hard, brittle, gray metal, high melting point",
+        chemicalProps: "Forms Be²⁺ ions, amphoteric oxide",
+        occurrence: "Found in beryl and emerald gemstones",
+        uses: "Aerospace alloys/materials, X-ray windows",
+        bioImportance: "Toxic to humans",
+        funFact: "Transparent to X-rays"
+      },
+      {
+        num: 5, symbol: "B", name: "Boron", mass: "10.810 (10.81)",
+        category: "Metalloid",
+        discoverer: "Humphry Davy and Joseph Louis Gay-Lussac in 1808",
+        textbookSummary: "Metalloid, used in glass and ceramics, strengthens materials.",
+        physicalProps: "Brittle, black metalloid",
+        chemicalProps: "Forms covalent compounds, e.g., borates",
+        occurrence: "Found in borax and kernite",
+        uses: "Glass and ceramics, detergents, semiconductors, bulletproof glass",
+        bioImportance: "Aids plant growth",
+        funFact: "Used in bulletproof glass and strengthens materials"
+      },
+      {
+        num: 6, symbol: "C", name: "Carbon", mass: "12.011",
+        category: "Nonmetal",
+        discoverer: "Known since antiquity",
+        textbookSummary: "Basis of organic life, forms diamonds and graphite, nonmetal.",
+        physicalProps: "Exists as graphite, diamond, and amorphous forms",
+        chemicalProps: "Forms four bonds, basis of organic chemistry",
+        occurrence: "Found in all living things, coal, CO₂",
+        uses: "Fuels, steel, diamonds, graphite, organic compounds",
+        bioImportance: "Backbone of life; essential for biological processes",
+        funFact: "Can form over 10 million compounds"
+      },
+      {
+        num: 7, symbol: "N", name: "Nitrogen", mass: "14.007",
+        category: "Nonmetal (-gen gas)",
+        discoverer: "Daniel Rutherford in 1772",
+        textbookSummary: "Makes up 78% of Earth's atmosphere, inert gas, essential for life.",
+        physicalProps: "Colorless gas, boiling point −195.8 °C",
+        chemicalProps: "Forms N₂, nitrates, ammonia",
+        occurrence: "Makes up 78% of Earth's atmosphere",
+        uses: "Fertilizers, explosives, cryogenics",
+        bioImportance: "Found in proteins and DNA; essential for life",
+        funFact: "Essential for plant growth and makes up most of the air we breathe"
+      },
+      {
+        num: 8, symbol: "O", name: "Oxygen", mass: "15.999",
+        category: "Nonmetal (-gen gas)",
+        discoverer: "Joseph Priestley in 1774",
+        textbookSummary: "Essential for respiration, supports combustion, highly reactive.",
+        physicalProps: "Colorless gas, boiling point −183 °C",
+        chemicalProps: "Highly reactive, supports combustion, forms oxides",
+        occurrence: "21% of Earth's atmosphere, water, minerals",
+        uses: "Respiration, welding, medical oxygen",
+        bioImportance: "Vital for life and cellular respiration",
+        funFact: "Third most abundant element in the universe"
+      },
+      {
+        num: 9, symbol: "F", name: "Fluorine", mass: "18.998",
+        category: "Halogen Nonmetal (-ine)",
+        discoverer: "Henri Moissan in 1886",
+        textbookSummary: "Most reactive element, used in toothpaste (fluoride), toxic gas.",
+        physicalProps: "Pale yellow toxic gas, highly corrosive",
+        chemicalProps: "Most reactive element of all; halogen",
+        occurrence: "Found in fluorite and cryolite",
+        uses: "Toothpaste (fluoride), Teflon, refrigerants",
+        bioImportance: "Strengthens teeth (in small amounts)",
+        funFact: "So reactive and corrosive that it can etch glass"
+      },
+      {
+        num: 10, symbol: "Ne", name: "Neon", mass: "20.180",
+        category: "Inert Noble Gas (-on)",
+        discoverer: "William Ramsay and Morris Travers in 1898",
+        textbookSummary: "Inert gas, used in neon signs, nonreactive.",
+        physicalProps: "Colorless gas, glows red-orange in electrical discharge",
+        chemicalProps: "Inert noble gas, nonreactive",
+        occurrence: "Found in trace amounts in Earth's atmosphere",
+        uses: "Advertising neon signs, high-voltage indicators",
+        bioImportance: "None",
+        funFact: "Produces bright red-orange light in discharge tubes"
+      },
+      {
+        num: 11, symbol: "Na", name: "Sodium", mass: "22.989 (22.990)",
+        category: "Reactive Metal (-ium)",
+        discoverer: "Humphry Davy in 1807",
+        textbookSummary: "Soft metal, reactive with water, essential for nerve function.",
+        physicalProps: "Soft, silvery metal",
+        chemicalProps: "Reacts violently with water (hazardous in pure form)",
+        occurrence: "Found in table salt (NaCl)",
+        uses: "Street lights, soap, glass, table salt",
+        bioImportance: "Regulates nerve function; essential electrolyte in humans",
+        funFact: "Symbol 'Na' comes from its Latin name 'Natrium'"
+      },
+      {
+        num: 12, symbol: "Mg", name: "Magnesium", mass: "24.305",
+        category: "Metal (-ium)",
+        discoverer: "Joseph Black in 1755",
+        textbookSummary: "Lightweight metal, essential for chlorophyll in plants, reactive.",
+        physicalProps: "Lightweight silvery metal, burns with a bright white flame",
+        chemicalProps: "Reactive, forms Mg²⁺ ions",
+        occurrence: "Found in dolomite and seawater",
+        uses: "Aircraft construction alloys, fireworks, medicine",
+        bioImportance: "Essential central component of chlorophyll in green plants",
+        funFact: "Burns with a blinding bright white flame and used in aircraft"
+      },
+      {
+        num: 13, symbol: "Al", name: "Aluminum", mass: "26.981 (26.982)",
+        category: "Metal (-um)",
+        discoverer: "Hans Christian Ørsted in 1825",
+        textbookSummary: "Lightweight, corrosion-resistant, used in cans and aircraft.",
+        physicalProps: "Lightweight, silvery, corrosion-resistant metal",
+        chemicalProps: "Forms Al³⁺ ions, amphoteric oxide",
+        occurrence: "Found in bauxite ore",
+        uses: "Beverage cans, packaging, aircraft construction, computer cases",
+        bioImportance: "None (toxic in excess)",
+        funFact: "Most abundant metal in Earth's crust"
+      },
+      {
+        num: 14, symbol: "Si", name: "Silicon", mass: "28.085",
+        category: "Metalloid",
+        discoverer: "Jöns Jacob Berzelius in 1824",
+        textbookSummary: "Semiconductor, used in electronics and solar panels.",
+        physicalProps: "Gray metalloid, brittle; exhibits properties of both metals and nonmetals",
+        chemicalProps: "Forms SiO₂ (silica) and silicates",
+        occurrence: "Found in sand and quartz",
+        uses: "Computer chips, electronics, solar panels/cells, glass",
+        bioImportance: "Strengthens bones and connective tissue",
+        funFact: "Backbone of modern technology and computer chips"
+      },
+      {
+        num: 15, symbol: "P", name: "Phosphorus", mass: "30.974",
+        category: "Nonmetal",
+        discoverer: "Hennig Brand in 1669",
+        textbookSummary: "Essential for DNA and energy transfer, used in fertilizers.",
+        physicalProps: "Exists as white, red, or black allotropes",
+        chemicalProps: "Highly reactive, forms phosphates",
+        occurrence: "Found in minerals and bones",
+        uses: "Fertilizers, safety matches, detergents",
+        bioImportance: "Essential for DNA, energy transfer (ATP), and bones",
+        funFact: "White form glows in the dark (chemiluminescence)"
+      },
+      {
+        num: 16, symbol: "S", name: "Sulfur", mass: "32.065 (32.06)",
+        category: "Nonmetal",
+        discoverer: "Known since antiquity",
+        textbookSummary: "Nonmetal, used in sulfuric acid, matches, and vulcanization of rubber.",
+        physicalProps: "Yellow solid, brittle nonmetal",
+        chemicalProps: "Forms sulfides and sulfates",
+        occurrence: "Found near volcanoes and hot springs",
+        uses: "Sulfuric acid, matches, fertilizers, vulcanization of rubber tires",
+        bioImportance: "Found in essential amino acids and proteins",
+        funFact: "Known as 'brimstone' in ancient texts"
+      },
+      {
+        num: 17, symbol: "Cl", name: "Chlorine", mass: "35.452 (35.45)",
+        category: "Halogen Nonmetal (-ine)",
+        discoverer: "Carl Wilhelm Scheele in 1774",
+        textbookSummary: "Highly reactive gas, used in disinfectants and PVC plastics.",
+        physicalProps: "Greenish-yellow gas",
+        chemicalProps: "Highly reactive halogen gas, strong oxidizer, forms Cl⁻ ions",
+        occurrence: "Found in salt (NaCl) and seawater",
+        uses: "Disinfectants, PVC plastics/pipes, bleach, water treatment",
+        bioImportance: "Stomach acid (HCl) and fluid balance",
+        funFact: "Greenish-yellow halogen gas widely used to keep swimming pools clean"
+      },
+      {
+        num: 18, symbol: "Ar", name: "Argon", mass: "39.948",
+        category: "Inert Noble Gas (-on)",
+        discoverer: "Lord Rayleigh and William Ramsay in 1894",
+        textbookSummary: "Inert gas, used in light bulbs and welding, nonreactive.",
+        physicalProps: "Colorless, odorless gas; density 1.784 g/L; boiling point −185.8 °C",
+        chemicalProps: "Inert noble gas, rarely forms compounds",
+        occurrence: "Found in Earth's atmosphere (~0.93%)",
+        uses: "Incandescent light bulbs, welding, preserving historical documents",
+        bioImportance: "None",
+        funFact: "Used in incandescent light bulbs to prevent the hot filament from oxidizing"
+      },
+      {
+        num: 19, symbol: "K", name: "Potassium", mass: "39.098 (Textbook print: 35.452)",
+        category: "Reactive Metal (-ium)",
+        discoverer: "Isolated by Humphry Davy in 1807",
+        textbookSummary: "Reactive alkali metal (reacts violently with water); Latin name 'Kalium'.",
+        physicalProps: "Soft, silvery metal; melts at 63.5 °C",
+        chemicalProps: "Reacts violently with water (hazardous in pure form), forms K⁺ ions",
+        occurrence: "Found in minerals like sylvite and carnallite, and in fruits/avocados",
+        uses: "Fertilizers, fireworks, glass manufacturing",
+        bioImportance: "Essential for nerve and muscle function",
+        funFact: "Symbol 'K' comes from Latin 'Kalium'; burns with a lilac flame"
+      },
+      {
+        num: 20, symbol: "Ca", name: "Calcium", mass: "40.078",
+        category: "Metal (-ium)",
+        discoverer: "Isolated by Humphry Davy in 1808",
+        textbookSummary: "Important for bones and teeth, used in cement, reactive.",
+        physicalProps: "Silvery-white metal, density 1.55 g/cm³",
+        chemicalProps: "Reacts with water and acids, forms Ca²⁺ ions",
+        occurrence: "Found in limestone, gypsum, bones, and seashells",
+        uses: "Cement, plaster, dietary supplements",
+        bioImportance: "Vital for bones, teeth, and muscle contraction",
+        funFact: "Fifth most abundant element in the Earth's crust"
+      },
+      {
+        num: 21, symbol: "Sc", name: "Scandium", mass: "44.956",
+        category: "Transition Metal (-ium)",
+        discoverer: "Discovered by Lars Fredrik Nilson in 1879",
+        textbookSummary: "Element 21 from NotebookLM notes: strengthens aluminum alloys in aircraft.",
+        physicalProps: "Silvery-white metal, density 2.99 g/cm³",
+        chemicalProps: "Forms Sc³⁺ ions, reacts with acids",
+        occurrence: "Found in rare minerals like thortveitite",
+        uses: "Aerospace alloys, high-performance sports equipment",
+        bioImportance: "No known biological role",
+        funFact: "Strengthens aluminum alloys used in aircraft"
+      },
+      {
+        num: 26, symbol: "Fe", name: "Iron", mass: "55.845",
+        category: "Common Metal (Beyond First 20)",
+        discoverer: "Known since ancient times (Latin: 'ferrum')",
+        textbookSummary: "Symbol 'Fe' comes from Latin 'ferrum'. Known for strength, durability, and magnetic properties.",
+        physicalProps: "Strong, durable, magnetic metal",
+        chemicalProps: "Rusts when exposed to oxygen and moisture",
+        occurrence: "Abundant in Earth's core and crust",
+        uses: "Steel construction, magnets, tools, bridges",
+        bioImportance: "Carries oxygen in blood hemoglobin",
+        funFact: "Symbol 'Fe' comes from the Latin word 'ferrum', meaning iron"
+      },
+      {
+        num: 29, symbol: "Cu", name: "Copper", mass: "63.546",
+        category: "Common Metal (Beyond First 20)",
+        discoverer: "Known since antiquity; Latin 'cuprum' from Cyprus",
+        textbookSummary: "Symbol 'Cu' comes from Latin 'cuprum' (from Cyprus). Highly conductive, ductile, and malleable.",
+        physicalProps: "Reddish-orange metal; high ductility (stretched into thin wires) and malleability (shaped into thin sheets)",
+        chemicalProps: "Resistant to corrosion",
+        occurrence: "Historically mined in Cyprus",
+        uses: "Electrical wires in computers, electronics, plumbing, coins",
+        bioImportance: "Trace element in enzymes",
+        funFact: "Name and symbol 'Cu' come from 'cuprum', after Cyprus where it was mined"
+      },
+      {
+        num: 79, symbol: "Au", name: "Gold", mass: "196.967",
+        category: "Precious Metal (Beyond First 20)",
+        discoverer: "Known since antiquity (Latin: 'aurum')",
+        textbookSummary: "Symbol 'Au' comes from Latin 'aurum'. Precious metal used in jewelry and electronics.",
+        physicalProps: "Shiny yellow precious metal; highly conductive",
+        chemicalProps: "Extremely resistant to corrosion and tarnishing",
+        occurrence: "Found as native metal nuggets and veins in rock",
+        uses: "Fine jewelry, high-end electronics, currency",
+        bioImportance: "None",
+        funFact: "Symbol 'Au' comes from the Latin word 'aurum', meaning gold"
+      }
+    ];
+
+    // Global State
+    let globalScore = 0;
+    let globalStreak = 0;
+    let currentTab = 'detective';
+
+    // Detective Quiz State
+    let detectiveDeck = [];
+    let detIndex = 0;
+    let currentDetQuestion = null;
+    let detAnswered = false;
+    let detHintUsed = false;
+
+    // Drag & Drop State
+    let ddTargetElements = [];
+    let ddClueItems = [];
+    let selectedChipId = null; // For mobile/tap support
+
+    // Initialize App on Load
+    window.onload = function() {
+      restartDetectiveGame();
+      initDragDropRound();
+      renderStudyDeck();
+    };
+
+    function updateScoreUI(delta, resetStreak = false) {
+      globalScore = Math.max(0, globalScore + delta);
+      if (resetStreak) {
+        globalStreak = 0;
+      } else if (delta > 0) {
+        globalStreak++;
+      }
+      document.getElementById('global-score').textContent = `${globalScore} pts`;
+      document.getElementById('global-streak').textContent = `🔥 ${globalStreak}`;
+    }
+
+    function switchTab(tab) {
+      currentTab = tab;
+      ['detective', 'dragdrop', 'study'].forEach(t => {
+        const view = document.getElementById(`view-${t}`);
+        const btn = document.getElementById(`tab-${t}`);
+        if (t === tab) {
+          view.classList.remove('hidden');
+          btn.className = "flex-1 min-w-[160px] py-2.5 px-4 rounded-xl font-semibold text-sm transition flex items-center justify-center gap-2 bg-indigo-600 text-white shadow-lg shadow-indigo-600/30";
+        } else {
+          view.classList.add('hidden');
+          btn.className = "flex-1 min-w-[160px] py-2.5 px-4 rounded-xl font-semibold text-sm transition flex items-center justify-center gap-2 bg-slate-700/70 hover:bg-slate-700 text-slate-200";
+        }
+      });
+    }
+
+    function shuffleArray(arr) {
+      const copy = [...arr];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    /* =====================================================
+       MODE 1: ELEMENT DETECTIVE LOGIC
+       ===================================================== */
+    function restartDetectiveGame() {
+      detectiveDeck = shuffleArray(ELEMENTS_DATA).slice(0, 15);
+      detIndex = 0;
+      loadDetectiveQuestion();
+    }
+
+    function loadDetectiveQuestion() {
+      detAnswered = false;
+      detHintUsed = false;
+      const el = detectiveDeck[detIndex];
+      const filter = document.getElementById('det-filter').value;
+
+      // Reset Mystery Tile
+      document.getElementById('tile-atomic-num').textContent = (filter === 'atomic') ? `#${el.num}` : '?';
+      document.getElementById('tile-symbol').textContent = '?';
+      document.getElementById('tile-name').textContent = 'MYSTERY';
+      document.getElementById('tile-mass').textContent = `Mass: ${el.mass}`;
+      document.getElementById('mystery-tile').className = "w-32 h-36 rounded-2xl element-tile border-2 border-indigo-400/60 flex flex-col items-center justify-between p-3 shrink-0 text-center relative overflow-hidden";
+
+      document.getElementById('det-question-num').textContent = `Case #${detIndex + 1} of ${detectiveDeck.length}`;
+      document.getElementById('det-category-badge').textContent = el.category;
+
+      // Build Clues based on selected focus
+      let clues = [];
+      if (filter === 'atomic') {
+        clues.push({ icon: "🔢", label: "Atomic Number & Mass", text: `Atomic Number is ${el.num} (${el.num} protons) and Atomic Mass is ≈ ${el.mass}.` });
+        clues.push({ icon: "📖", label: "Textbook Summary", text: el.textbookSummary });
+        clues.push({ icon: "🛠️", label: "Common Uses", text: el.uses });
+      } else if (filter === 'scientist') {
+        clues.push({ icon: "👨‍🔬", label: "Discovery & History", text: el.discoverer });
+        clues.push({ icon: "✨", label: "Interesting Fact", text: el.funFact });
+        clues.push({ icon: "🔢", label: "Atomic Info", text: `Atomic Number ${el.num} | Atomic Mass ≈ ${el.mass}` });
+      } else if (filter === 'properties') {
+        clues.push({ icon: "⚗️", label: "Physical & Chemical Properties", text: `${el.physicalProps}. ${el.chemicalProps}.` });
+        clues.push({ icon: "🛠️", label: "Uses & Examples", text: el.uses });
+        clues.push({ icon: "🌱", label: "Biological & Natural Role", text: `${el.occurrence}. Bio role: ${el.bioImportance}.` });
+      } else {
+        // Complete Mix
+        clues.push({ icon: "🔢", label: "Atomic Profile", text: `Atomic Number: ${el.num} | Atomic Mass: ≈ ${el.mass}` });
+        clues.push({ icon: "👨‍🔬", label: "Scientist & History", text: el.discoverer });
+        clues.push({ icon: "⚗️", label: "Properties", text: `${el.physicalProps}; ${el.chemicalProps}` });
+        clues.push({ icon: "🛠️", label: "Uses & Fun Fact", text: `${el.uses}. (${el.funFact})` });
+      }
+
+      const cluesHTML = clues.map(c => `
+        <div class="bg-slate-900/90 border border-slate-700/80 rounded-xl p-3">
+          <span class="text-xs font-bold text-indigo-300 block mb-0.5">${c.icon} ${c.label}:</span>
+          <p class="text-slate-200 text-xs md:text-sm leading-relaxed">${c.text}</p>
+        </div>
+      `).join('');
+      document.getElementById('det-clues-container').innerHTML = cluesHTML;
+
+      // Reset Extra Hint & Feedback
+      document.getElementById('extra-hint-text').classList.add('hidden');
+      document.getElementById('btn-extra-hint').disabled = false;
+      document.getElementById('btn-extra-hint').classList.remove('opacity-50');
+      document.getElementById('det-feedback').classList.add('hidden');
+      document.getElementById('btn-next-question').classList.add('hidden');
+
+      // Generate 4 Multiple Choice Options
+      const distractors = shuffleArray(ELEMENTS_DATA.filter(item => item.num !== el.num)).slice(0, 3);
+      const options = shuffleArray([el, ...distractors]);
+      currentDetQuestion = { element: el, options: options };
+
+      renderAnswerArea();
+    }
+
+    function renderAnswerArea() {
+      const hardMode = document.getElementById('toggle-hard-mode').checked;
+      const mcGrid = document.getElementById('mc-options-grid');
+      const typeBox = document.getElementById('type-answer-box');
+
+      if (hardMode) {
+        mcGrid.classList.add('hidden');
+        typeBox.classList.remove('hidden');
+        const input = document.getElementById('type-input');
+        input.value = '';
+        input.disabled = detAnswered;
+        if (!detAnswered) input.focus();
+      } else {
+        typeBox.classList.add('hidden');
+        mcGrid.classList.remove('hidden');
+        mcGrid.innerHTML = currentDetQuestion.options.map(opt => `
+          <button onclick="checkDetectiveAnswer('${opt.symbol}')"
+                  id="opt-btn-${opt.symbol}"
+                  ${detAnswered ? 'disabled' : ''}
+                  class="w-full text-left p-3.5 rounded-xl border border-slate-600 bg-slate-900/80 hover:bg-indigo-950/60 hover:border-indigo-400 transition flex items-center justify-between group">
+            <div class="flex items-center gap-3">
+              <span class="w-10 h-10 rounded-lg bg-slate-800 border border-slate-600 flex items-center justify-center font-bold text-indigo-300 group-hover:bg-indigo-600 group-hover:text-white transition font-display text-lg">
+                ${opt.symbol}
+              </span>
+              <div>
+                <span class="font-bold text-white block text-sm">${opt.name}</span>
+                <span class="text-xs text-slate-400">Atomic #${opt.num} • Mass ≈ ${opt.mass}</span>
+              </div>
+            </div>
+            <span class="text-xs text-slate-400 group-hover:text-indigo-300">Select ➡️</span>
+          </button>
+        `).join('');
+      }
+    }
+
+    function revealDetectiveHint() {
+      if (detHintUsed || detAnswered) return;
+      detHintUsed = true;
+      updateScoreUI(-2, false);
+      const el = currentDetQuestion.element;
+      const hintEl = document.getElementById('extra-hint-text');
+      hintEl.textContent = `Hint: Starts with "${el.name[0]}" | Textbook Note: "${el.textbookSummary}"`;
+      hintEl.classList.remove('hidden');
+      document.getElementById('btn-extra-hint').disabled = true;
+      document.getElementById('btn-extra-hint').classList.add('opacity-50');
+    }
+
+    function submitTypedAnswer() {
+      if (detAnswered) return;
+      const val = document.getElementById('type-input').value.trim().toLowerCase();
+      if (!val) return;
+      const el = currentDetQuestion.element;
+      const isMatch = (val === el.name.toLowerCase() || val === el.symbol.toLowerCase());
+      checkDetectiveAnswer(isMatch ? el.symbol : 'WRONG_TYPED');
+    }
+
+    function checkDetectiveAnswer(selectedSymbol) {
+      if (detAnswered) return;
+      detAnswered = true;
+      const el = currentDetQuestion.element;
+      const isCorrect = (selectedSymbol === el.symbol);
+
+      // Reveal Mystery Tile
+      document.getElementById('tile-atomic-num').textContent = `#${el.num}`;
+      document.getElementById('tile-symbol').textContent = el.symbol;
+      document.getElementById('tile-name').textContent = el.name;
+      document.getElementById('tile-mass').textContent = `Mass: ${el.mass}`;
+
+      const feedbackBox = document.getElementById('det-feedback');
+      feedbackBox.classList.remove('hidden');
+
+      if (isCorrect) {
+        const pts = document.getElementById('toggle-hard-mode').checked ? 15 : 10;
+        updateScoreUI(pts, false);
+        document.getElementById('mystery-tile').className = "w-32 h-36 rounded-2xl element-tile border-2 border-emerald-400 flex flex-col items-center justify-between p-3 shrink-0 text-center relative overflow-hidden";
+        feedbackBox.className = "mt-4 p-4 rounded-xl border bg-emerald-950/70 border-emerald-500/60 text-emerald-200 text-sm";
+        feedbackBox.innerHTML = `
+          <div class="font-bold text-emerald-300 text-base mb-1">✅ Correct! It's ${el.name} (${el.symbol})! (+${pts} pts)</div>
+          <p class="text-xs leading-relaxed">${el.textbookSummary} Discovered by: ${el.discoverer}.</p>
+        `;
+      } else {
+        updateScoreUI(0, true);
+        document.getElementById('mystery-tile').className = "w-32 h-36 rounded-2xl element-tile border-2 border-rose-500 flex flex-col items-center justify-between p-3 shrink-0 text-center relative overflow-hidden";
+        feedbackBox.className = "mt-4 p-4 rounded-xl border bg-rose-950/70 border-rose-500/60 text-rose-200 text-sm";
+        feedbackBox.innerHTML = `
+          <div class="font-bold text-rose-300 text-base mb-1">❌ Not quite! The correct element is ${el.name} (${el.symbol}).</div>
+          <p class="text-xs leading-relaxed">${el.textbookSummary} (Atomic #${el.num}, Mass ≈ ${el.mass}).</p>
+        `;
+      }
+
+      // Highlight buttons if in Multiple Choice mode
+      currentDetQuestion.options.forEach(opt => {
+        const btn = document.getElementById(`opt-btn-${opt.symbol}`);
+        if (!btn) return;
+        btn.disabled = true;
+        if (opt.symbol === el.symbol) {
+          btn.className = "w-full text-left p-3.5 rounded-xl border-2 border-emerald-400 bg-emerald-950/60 flex items-center justify-between";
+        } else if (opt.symbol === selectedSymbol) {
+          btn.className = "w-full text-left p-3.5 rounded-xl border-2 border-rose-500 bg-rose-950/60 flex items-center justify-between opacity-80";
+        } else {
+          btn.classList.add('opacity-40');
+        }
+      });
+
+      const nextBtn = document.getElementById('btn-next-question');
+      nextBtn.textContent = (detIndex < detectiveDeck.length - 1) ? "Next Element ➡️" : "🎉 Finish & Restart Set";
+      nextBtn.classList.remove('hidden');
+    }
+
+    function nextDetectiveQuestion() {
+      if (detIndex < detectiveDeck.length - 1) {
+        detIndex++;
+        loadDetectiveQuestion();
+      } else {
+        restartDetectiveGame();
+      }
+    }
+
+    /* =====================================================
+       MODE 2: DRAG & DROP PROPERTY MATCHER LOGIC
+       ===================================================== */
+    function initDragDropRound() {
+      selectedChipId = null;
+      const level = document.getElementById('dd-level-select').value;
+      let pool = [];
+
+      if (level === '1-5') pool = ELEMENTS_DATA.filter(e => e.num >= 1 && e.num <= 5);
+      else if (level === '6-10') pool = ELEMENTS_DATA.filter(e => e.num >= 6 && e.num <= 10);
+      else if (level === '11-15') pool = ELEMENTS_DATA.filter(e => e.num >= 11 && e.num <= 15);
+      else if (level === '16-20') pool = ELEMENTS_DATA.filter(e => e.num >= 16 && e.num <= 20);
+      else if (level === 'beyond') pool = ELEMENTS_DATA.filter(e => e.num > 20);
+      else pool = ELEMENTS_DATA;
+
+      ddTargetElements = shuffleArray(pool).slice(0, 4);
+      ddClueItems = [];
+
+      // Create 2 distinct draggable clues for each of the 4 target elements
+      ddTargetElements.forEach((el, idx) => {
+        const clueOptions = [
+          ` textbook: "${el.textbookSummary}"`,
+          `Atomic #${el.num}, Mass ≈ ${el.mass} (${el.category})`,
+          `Discovery: ${el.discoverer}`,
+          `Properties: ${el.physicalProps}; ${el.chemicalProps}`,
+          `Uses: ${el.uses} | Fact: ${el.funFact}`
+        ];
+        const chosenTwo = shuffleArray(clueOptions).slice(0, 2);
+        ddClueItems.push({
+          id: `chip-${el.symbol}-1`,
+          targetSymbol: el.symbol,
+          text: chosenTwo[0],
+          currentHolder: 'BANK',
+          status: 'unverified'
+        });
+        ddClueItems.push({
+          id: `chip-${el.symbol}-2`,
+          targetSymbol: el.symbol,
+          text: chosenTwo[1],
+          currentHolder: 'BANK',
+          status: 'unverified'
+        });
+      });
+
+      ddClueItems = shuffleArray(ddClueItems);
+      document.getElementById('dd-status-msg').textContent = "Drag all 8 clues into their matching Element Cards!";
+      renderDragDropBoard();
+    }
+
+    function renderDragDropBoard() {
+      // Render Bank
+      const bankEl = document.getElementById('dd-bank');
+      const bankItems = ddClueItems.filter(item => item.currentHolder === 'BANK');
+      if (bankItems.length === 0) {
+        bankEl.innerHTML = `<div class="col-span-full text-center text-xs text-slate-400 py-4">All clues placed! Click "✅ Check Matches" to verify your answers.</div>`;
+      } else {
+        bankEl.innerHTML = bankItems.map(item => createChipHTML(item)).join('');
+      }
+
+      // Render 4 Target Element Buckets
+      const targetsEl = document.getElementById('dd-targets');
+      targetsEl.innerHTML = ddTargetElements.map(el => {
+        const placedItems = ddClueItems.filter(item => item.currentHolder === el.symbol);
+        return `
+          <div class="bg-slate-800/90 border-2 border-slate-600 rounded-2xl p-4 flex flex-col justify-between drop-zone min-h-[260px]"
+               ondragover="allowDrop(event)"
+               ondragenter="handleDragEnter(event)"
+               ondragleave="handleDragLeave(event)"
+               ondrop="dropToTarget(event, '${el.symbol}')"
+               onclick="handleTargetClick('${el.symbol}')">
+            <div>
+              <!-- Element Header -->
+              <div class="flex items-center gap-3 pb-3 mb-3 border-b border-slate-700">
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-700 flex flex-col items-center justify-center border border-indigo-300 shrink-0">
+                  <span class="text-[10px] text-indigo-200 font-bold leading-none">${el.num}</span>
+                  <span class="text-xl font-extrabold text-white font-display leading-tight">${el.symbol}</span>
+                </div>
+                <div>
+                  <h3 class="font-bold text-white text-base">${el.name}</h3>
+                  <span class="text-xs text-slate-400">${el.category}</span>
+                </div>
+              </div>
+
+              <!-- Dropped Chips Container -->
+              <div class="space-y-2 min-h-[130px]">
+                ${placedItems.length === 0
+                  ? `<div class="h-28 border border-dashed border-slate-600 rounded-xl flex items-center justify-center text-xs text-slate-400 text-center p-3">Drop or tap 2 matching clues here for <strong>${el.name} (${el.symbol})</strong></div>`
+                  : placedItems.map(item => createChipHTML(item)).join('')
+                }
+              </div>
+            </div>
+            <div class="mt-3 pt-2 border-t border-slate-700/60 flex justify-between items-center text-[11px] text-slate-400">
+              <span>Clues placed: ${placedItems.length}/2</span>
+              <span>Mass ≈ ${el.mass}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function createChipHTML(item) {
+      let colorClasses = "bg-slate-800 border-slate-600 text-slate-100 hover:border-indigo-400";
+      let badgeIcon = "🏷️";
+      if (item.status === 'correct') {
+        colorClasses = "bg-emerald-950/90 border-emerald-400 text-emerald-100";
+        badgeIcon = "✅";
+      } else if (item.status === 'wrong') {
+        colorClasses = "bg-rose-950/90 border-rose-400 text-rose-100";
+        badgeIcon = "❌";
+      }
+
+      const isSelected = (selectedChipId === item.id) ? "selected-chip" : "";
+
+      return `
+        <div id="${item.id}"
+             draggable="true"
+             ondragstart="dragStart(event, '${item.id}')"
+             onclick="selectChipForTap(event, '${item.id}')"
+             class="draggable-chip p-2.5 rounded-xl border ${colorClasses} ${isSelected} text-xs leading-snug shadow-md flex items-start gap-2">
+          <span>${badgeIcon}</span>
+          <span class="flex-1">${item.text}</span>
+        </div>
+      `;
+    }
+
+    // HTML5 Drag & Drop Handlers
+    function dragStart(ev, chipId) {
+      ev.dataTransfer.setData("text/plain", chipId);
+      selectedChipId = chipId;
+    }
+
+    function allowDrop(ev) {
+      ev.preventDefault();
+    }
+
+    function handleDragEnter(ev) {
+      ev.currentTarget.classList.add('drag-over');
+    }
+
+    function handleDragLeave(ev) {
+      ev.currentTarget.classList.remove('drag-over');
+    }
+
+    function dropToTarget(ev, targetSymbol) {
+      ev.preventDefault();
+      ev.currentTarget.classList.remove('drag-over');
+      const chipId = ev.dataTransfer.getData("text/plain") || selectedChipId;
+      moveChip(chipId, targetSymbol);
+    }
+
+    function dropToBank(ev) {
+      ev.preventDefault();
+      const chipId = ev.dataTransfer.getData("text/plain") || selectedChipId;
+      moveChip(chipId, 'BANK');
+    }
+
+    // Mobile / Tap-to-Move Support
+    function selectChipForTap(ev, chipId) {
+      ev.stopPropagation();
+      if (selectedChipId === chipId) {
+        selectedChipId = null;
+      } else {
+        selectedChipId = chipId;
+      }
+      renderDragDropBoard();
+    }
+
+    function handleTargetClick(targetSymbol) {
+      if (!selectedChipId) return;
+      moveChip(selectedChipId, targetSymbol);
+    }
+
+    function handleBankClick() {
+      if (!selectedChipId) return;
+      moveChip(selectedChipId, 'BANK');
+    }
+
+    function moveChip(chipId, destination) {
+      const chip = ddClueItems.find(c => c.id === chipId);
+      if (!chip) return;
+      chip.currentHolder = destination;
+      chip.status = 'unverified';
+      selectedChipId = null;
+      renderDragDropBoard();
+    }
+
+    function checkDragDropAnswers() {
+      let correctCount = 0;
+      let placedCount = 0;
+
+      ddClueItems.forEach(item => {
+        if (item.currentHolder !== 'BANK') {
+          placedCount++;
+          if (item.currentHolder === item.targetSymbol) {
+            item.status = 'correct';
+            correctCount++;
+          } else {
+            item.status = 'wrong';
+          }
+        } else {
+          item.status = 'unverified';
+        }
+      });
+
+      const statusEl = document.getElementById('dd-status-msg');
+      if (placedCount === 0) {
+        statusEl.textContent = "⚠️ Please drag at least one clue into an element box first!";
+        return;
+      }
+
+      if (correctCount === 8) {
+        updateScoreUI(25, false);
+        statusEl.textContent = "🎉 PERFECT MATCH! All 8 clues matched correctly! (+25 pts)";
+      } else {
+        updateScoreUI(correctCount * 2, false);
+        statusEl.textContent = `You matched ${correctCount} of 8 correctly! Fix any red cards or start a New Round.`;
+      }
+
+      renderDragDropBoard();
+    }
+
+    /* =====================================================
+       MODE 3: REFERENCE DECK
+       ===================================================== */
+    function renderStudyDeck() {
+      const query = (document.getElementById('study-search').value || '').toLowerCase();
+      const filtered = ELEMENTS_DATA.filter(el => {
+        const hay = `${el.num} ${el.symbol} ${el.name} ${el.category} ${el.discoverer} ${el.textbookSummary} ${el.uses} ${el.funFact}`.toLowerCase();
+        return hay.includes(query);
+      });
+
+      const grid = document.getElementById('study-grid');
+      grid.innerHTML = filtered.map(el => `
+        <div class="bg-slate-800/90 border border-slate-700 rounded-2xl p-4 shadow-lg flex flex-col justify-between space-y-3">
+          <div>
+            <div class="flex items-center justify-between pb-3 mb-2 border-b border-slate-700">
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-xl bg-slate-900 border border-indigo-400/50 flex flex-col items-center justify-center">
+                  <span class="text-[10px] text-indigo-300 font-bold leading-none">${el.num}</span>
+                  <span class="text-xl font-extrabold text-white font-display">${el.symbol}</span>
+                </div>
+                <div>
+                  <h3 class="font-bold text-white text-base">${el.name}</h3>
+                  <span class="text-xs text-amber-300 font-mono">Mass ≈ ${el.mass}</span>
+                </div>
+              </div>
+              <span class="text-[11px] px-2.5 py-1 rounded-full bg-indigo-950 text-indigo-300 border border-indigo-700">
+                ${el.category}
+              </span>
+            </div>
+
+            <div class="space-y-1.5 text-xs text-slate-300">
+              <p><strong class="text-indigo-300">📖 Textbook:</strong> ${el.textbookSummary}</p>
+              <p><strong class="text-indigo-300">👨‍🔬 Discovery:</strong> ${el.discoverer}</p>
+              <p><strong class="text-indigo-300">⚗️ Properties:</strong> ${el.physicalProps}; ${el.chemicalProps}</p>
+              <p><strong class="text-indigo-300">🌍 Occurrence & Bio:</strong> ${el.occurrence} | Bio: ${el.bioImportance}</p>
+              <p><strong class="text-indigo-300">🛠️ Uses:</strong> ${el.uses}</p>
+            </div>
+          </div>
+          <div class="pt-2 border-t border-slate-700/60 text-[11px] text-emerald-300 italic">
+            ✨ Fact: ${el.funFact}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    /* =====================================================
+       GOOGLE SHEETS SCORE LOGGING MODAL
+       ===================================================== */
+    function openSaveModal() {
+      document.getElementById('modal-score-display').textContent = `${globalScore} pts`;
+      document.getElementById('save-status').classList.add('hidden');
+      document.getElementById('save-modal').classList.remove('hidden');
+      document.getElementById('save-modal').classList.add('flex');
+    }
+
+    function closeSaveModal() {
+      document.getElementById('save-modal').classList.add('hidden');
+      document.getElementById('save-modal').classList.remove('flex');
+    }
+
+    function sendScoreToSheet() {
+      const name = document.getElementById('student-name').value.trim();
+      const section = document.getElementById('student-section').value.trim();
+      const statusBox = document.getElementById('save-status');
+      const btn = document.getElementById('btn-submit-sheet');
+
+      if (!name) {
+        statusBox.textContent = "Please enter your name first.";
+        statusBox.className = "text-xs p-2.5 rounded-lg bg-rose-950 text-rose-300 border border-rose-600";
+        statusBox.classList.remove('hidden');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = "Saving...";
+
+      const payload = {
+        name: name,
+        section: section,
+        mode: currentTab,
+        score: globalScore,
+        details: `Streak: ${globalStreak}`
+      };
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(res => {
+            btn.disabled = false;
+            btn.textContent = "Submit Score";
+            statusBox.classList.remove('hidden');
+            if (res.success) {
+              statusBox.className = "text-xs p-2.5 rounded-lg bg-emerald-950 text-emerald-300 border border-emerald-600";
+              statusBox.textContent = "✅ " + res.message;
+            } else {
+              statusBox.className = "text-xs p-2.5 rounded-lg bg-amber-950 text-amber-300 border border-amber-600";
+              statusBox.textContent = "ℹ️ " + res.message;
+            }
+          })
+          .withFailureHandler(err => {
+            btn.disabled = false;
+            btn.textContent = "Submit Score";
+            statusBox.classList.remove('hidden');
+            statusBox.className = "text-xs p-2.5 rounded-lg bg-rose-950 text-rose-300 border border-rose-600";
+            statusBox.textContent = "Error: " + err.message;
+          })
+          .submitStudentScore(payload);
+      } else {
+        btn.disabled = false;
+        btn.textContent = "Submit Score";
+        statusBox.classList.remove('hidden');
+        statusBox.className = "text-xs p-2.5 rounded-lg bg-emerald-950 text-emerald-300 border border-emerald-600";
+        statusBox.textContent = `✅ Local Preview: Score (${globalScore} pts) ready for ${name}!`;
+      }
+    }
+  </script>
+</body>
+</html>
